@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Porra de Fútbol</title>
+    <style>
+      * { box-sizing: border-box; }
+      :root { --safe-top: env(safe-area-inset-top, 0px); }
+
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f9f9f9;
+      }
+
+      .container {
+        width: 100%;
+        min-height: 100vh;
+        padding: 20px;
+        padding-top: 12px; /* sube el bloque en escritorio */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
+      button {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+      }
+      button:hover { background-color: #0056b3; }
+
+      /* Formulario partidos */
+      #partidos {
+        width: 100%;
+        max-width: 900px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin: 0 0 10px 0; /* elimina espacio extra arriba */
+      }
+      input[type="text"] {
+        flex: 1 1 260px;
+        max-width: 100%;
+        height: 36px;
+        padding: 6px 10px;
+      }
+
+      /* Participantes */
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        transition: all 0.3s ease;
+        width: 100%;
+        max-width: 1100px;
+      }
+      ul li {
+        width: 20%;
+        min-width: 180px;
+        margin: 10px;
+        display: flex;
+        align-items: center;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 6px 8px;
+        box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      ul li:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 4px rgba(0,0,0,0.2);
+      }
+      .participant-checkbox { margin-right: 6px; cursor: pointer; }
+
+      /* Resultado */
+      #result-container {
+        display: none;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-top: 16px;
+        transition: all 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 900px;
+      }
+      #result-text { white-space: pre-line; }
+
+      #copy-button {
+        background-color: #0056b3;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+      }
+      #copy-button:hover { background-color: #003f80; }
+
+      .copied-label {
+        background-color: rgba(0,123,255,0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        margin-left: 10px;
+      }
+      .copied-label.show { opacity: 1; pointer-events: auto; }
+
+      /* Móvil: sube el formulario y 3 columnas en participantes */
+      @media (max-width: 768px) {
+        .container {
+          padding-top: calc(8px + var(--safe-top)); /* <- antes era 140px */
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        /* Entradas del formulario a toda línea si hace falta */
+        input[type="text"] {
+          flex: 1 1 100%;
+          height: 40px;
+        }
+
+        /* 3 columnas de participantes */
+        ul {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          justify-items: stretch;
+        }
+        ul li {
+          width: auto;
+          min-width: 0;
+          margin: 0;               /* el grid ya mete el gap */
+          font-size: 12px;
+          padding: 8px;
+        }
+      }
+
+      /* Animación simple del loader */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Rediseño responsive */
+      :root { --green:#147a4b; --dark:#17211b; --muted:#66736b; --line:#dfe6e1; }
+      body { color:var(--dark); background:radial-gradient(circle at 50% -10%,#e4f5e9,transparent 38%),#f3f6f3; }
+      .container { max-width:1080px; margin:auto; padding:32px 22px 120px; }
+      .app-header { width:100%; max-width:900px; display:flex; align-items:center; gap:15px; margin-bottom:24px; }
+      .logo { display:grid; place-items:center; width:56px; height:56px; flex:none; border-radius:18px; background:var(--green); box-shadow:0 12px 25px rgba(20,122,75,.22); font-size:27px; }
+      .app-header small { color:var(--green); font-weight:800; letter-spacing:.14em; }
+      .app-header h1 { margin:3px 0 2px; font-size:30px; letter-spacing:-.03em; }
+      .app-header p { margin:0; color:var(--muted); font-size:14px; }
+      #partidos { padding:20px; gap:12px; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:0 10px 35px rgba(27,48,35,.06); }
+      input[type="text"] { height:46px; border:1px solid var(--line); border-radius:13px; padding:0 13px; outline:none; background:#fafcfb; }
+      input[type="text"]:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(20,122,75,.1); }
+      ul { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; max-width:900px; margin-top:15px; }
+      ul li { width:auto; min-width:0; min-height:44px; margin:0; padding:8px 10px; border-color:var(--line); border-radius:12px; box-shadow:none; font-size:14px; }
+      ul li:has(input:checked) { border-color:#acd3b9; background:#effaf2; font-weight:700; }
+      ul li:hover { transform:translateY(-1px); box-shadow:none; border-color:#a6c5b1; }
+      .participant-checkbox { width:18px; height:18px; accent-color:var(--green); }
+      #assign-button { position:sticky; bottom:14px; z-index:3; width:min(420px,100%); min-height:52px; margin-top:22px; border-radius:15px; background:#b9ef67; color:#18331f; box-shadow:0 13px 30px rgba(15,38,24,.2); font-weight:800; font-size:16px; }
+      #assign-button:hover { background:#c8f684; }
+      #result-container { max-width:720px; max-height:none; padding:22px; border:1px solid var(--line); border-radius:22px; background:white; box-shadow:0 10px 35px rgba(27,48,35,.07); }
+      #result-text { width:100%; padding:18px; border-radius:16px; background:#eff8f1; line-height:1.65; font-size:15px; }
+      .result-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+      #copy-button,#reset-button { min-height:46px; margin-top:14px; border-radius:13px; font-weight:800; }
+      #copy-button { background:var(--green); }
+      #reset-button { border:1px solid var(--line); background:white; color:var(--dark); }
+      .copied-label { margin-top:14px; background:var(--green); }
+      @media(max-width:768px) {
+        .container { padding:calc(17px + var(--safe-top)) 12px 100px; }
+        .app-header { gap:11px; margin-bottom:16px; }
+        .logo { width:46px; height:46px; border-radius:14px; font-size:22px; }
+        .app-header h1 { font-size:24px; }
+        .app-header p { font-size:12px; }
+        #partidos { padding:14px; border-radius:18px; }
+        input[type="text"] { height:44px; }
+        ul { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+        ul li { font-size:13px; min-height:44px; }
+        #assign-button { position:fixed; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); left:12px; width:auto; }
+        #result-container { padding:14px; border-radius:18px; }
+        .result-actions { position:fixed; right:10px; bottom:calc(8px + env(safe-area-inset-bottom)); left:10px; padding:9px; border-radius:17px; background:rgba(23,33,27,.95); box-shadow:0 12px 30px rgba(0,0,0,.22); }
+        #copy-button,#reset-button { flex:1; margin:0; padding:8px; font-size:12px; }
+      }
+      @media(max-width:360px) { ul { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="app-header">
+        <div class="logo">⚽</div>
+        <div><small>PORRA DE SECOS</small><h1>Prepara el sorteo</h1><p>Introduce los partidos y elige quién participa.</p></div>
+      </header>
+      <div id="partidos">
+        <input type="text" id="partido1" placeholder="Partido1" />
+        <input type="text" id="partido2" placeholder="Partido2" />
+        <input type="text" id="partido3" placeholder="Partido3" />
+      </div>
+
+      <ul id="participant-list"></ul>
+
+      <button id="assign-button">Sortear Puestos</button>
+
+      <div id="result-container">
+        <div id="result-text"></div>
+        <div class="result-actions">
+          <button id="reset-button">← Volver</button>
+          <button id="copy-button">Copiar para WhatsApp</button>
+          <span class="copied-label" id="copied-label">¡Copiado!</span>
+        </div>
+      </div>
+
+      <script>
+        // Lista de participantes
+        const participants = [
+          { name: "Hoces", selected: true },
+          { name: "Isa", selected: true },
+          { name: "Samu", selected: true },
+          { name: "Dani", selected: true },
+          { name: "Cañas", selected: true },
+          { name: "Pancho", selected: true },
+          { name: "Alexis", selected: true },
+          { name: "Raúl", selected: true },
+          { name: "David N", selected: true },
+          { name: "Pepe V", selected: true },
+          { name: "Mari", selected: true },
+          { name: "Campillero", selected: true },
+          { name: "Miguel D", selected: true },
+          { name: "Manuel", selected: true },
+          { name: "Antonio", selected: true },
+          { name: "Palomo", selected: true },
+          { name: "Juanma", selected: true },
+          { name: "Alberto", selected: true },
+          { name: "Javi", selected: true },
+          { name: "Paco N", selected: true },
+          { name: "Choped", selected: true },
+          { name: "Jesús P", selected: true },
+          { name: "Migui", selected: true },
+          { name: "Mario", selected: true },
+          { name: "Juan", selected: true },
+          { name: "Chengue", selected: true },
+          { name: "Raúl P", selected: true },
+          { name: "Sonia", selected: true },
+          { name: "Mario R", selected: true },
+          { name: "Mari M", selected: true },
+          { name: "Luis", selected: true },
+          { name: "Raulillo", selected: true },
+          { name: "Emilio", selected: true },
+          { name: "Manuel O", selected: true }
+        ];
+
+        function asignarNumeros() {
+          const assignedNumbers = [];
+          const selectedParticipants = participants.filter(p => p.selected);
+
+          selectedParticipants.forEach(() => {
+            let n;
+            do { n = Math.floor(Math.random() * selectedParticipants.length) + 1; }
+            while (assignedNumbers.includes(n));
+            assignedNumbers.push(n);
+          });
+
+          const sortedParticipants = selectedParticipants
+            .map((p, i) => ({ name: p.name, number: assignedNumbers[i] }))
+            .sort((a, b) => a.number - b.number);
+
+          const partido1 = document.getElementById("partido1").value || "Partido 1";
+          const partido2 = document.getElementById("partido2").value || "Partido 2";
+          const partido3 = document.getElementById("partido3").value || "Partido 3";
+
+          let resultado = `*⚽ ${partido1} ⚽*\n*⚽ ${partido2} ⚽*\n*⚽ ${partido3} ⚽*\n\n`;
+
+          sortedParticipants.forEach((participant, index) => {
+            setTimeout(() => {
+              resultado += `[${participant.number}] ${participant.name}\n`;
+              document.getElementById("result-text").textContent = resultado;
+
+              const resultContainer = document.getElementById("result-container");
+              resultContainer.scrollTop = resultContainer.scrollHeight;
+
+              if (index === sortedParticipants.length - 1) {
+                const loadingMessage = document.getElementById("loading-message");
+                if (loadingMessage) loadingMessage.style.display = "none";
+              }
+            }, index * 200);
+          });
+
+          document.getElementById("participant-list").style.display = "none";
+          document.getElementById("assign-button").style.display = "none";
+          document.getElementById("partidos").style.display = "none";
+
+          const loadingMessage = document.createElement("p");
+          loadingMessage.textContent = "CARGANDO RESULTADO...";
+          loadingMessage.style.textAlign = "center";
+          loadingMessage.style.fontSize = "18px";
+          loadingMessage.style.marginTop = "20px";
+          loadingMessage.style.animation = "fadeIn 1s";
+          loadingMessage.id = "loading-message";
+          document.getElementById("result-container").appendChild(loadingMessage);
+
+          const resultContainer = document.getElementById("result-container");
+          resultContainer.style.display = "block";
+        }
+
+        // Render de la lista de participantes
+        const participantList = document.getElementById("participant-list");
+        participants.forEach((participant) => {
+          const listItem = document.createElement("li");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "participant-checkbox";
+          checkbox.checked = participant.selected;
+          listItem.appendChild(checkbox);
+          listItem.appendChild(document.createTextNode(participant.name));
+          participantList.appendChild(listItem);
+
+          listItem.addEventListener("click", () => {
+            checkbox.checked = !checkbox.checked;
+            participant.selected = checkbox.checked;
+          });
+        });
+
+        document.getElementById("assign-button").addEventListener("click", asignarNumeros);
+
+        document.getElementById("copy-button").addEventListener("click", () => {
+          const resultado = document.getElementById("result-text").textContent;
+          const textarea = document.createElement("textarea");
+          textarea.value = resultado;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+
+          const copiedLabel = document.getElementById("copied-label");
+          copiedLabel.classList.add("show");
+          setTimeout(() => copiedLabel.classList.remove("show"), 2000);
+        });
+
+        document.getElementById("reset-button").addEventListener("click", () => location.reload());
+      </script>
+    </div>
+  </body>
+</html>
